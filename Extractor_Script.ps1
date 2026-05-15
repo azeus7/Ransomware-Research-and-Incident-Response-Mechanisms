@@ -31,4 +31,30 @@ $dawyebis_dro = Get-Date -Format "ddd MMM dd HH:mm:ss yyyy"
 " Output Directory:     $baza_folder" >> $info_faili
 "--------------------------------------------------" >> $info_faili
 
-Write-Host "Baseline folder ready: $baza_folder" -ForegroundColor Cyan
+
+#2. Extraction
+Write-Host "Starting Extraction" -ForegroundColor Cyan
+
+# 2,1. MFT
+try {
+    if (-not (Test-Path $rawcopy_gza)) {
+        throw "rawcopy faili ver moidzebna: $rawcopy_gza"
+    }
+
+    Write-Host "    -> Extracting $MFT..." -NoNewline
+
+    #using system drive instead of hardcoded C:
+    $paramebi = @("/FileNamePath:$env:SystemDrive\`$MFT", "/OutputPath:$baza_folder")
+    $procesi = Start-Process -FilePath $rawcopy_gza -ArgumentList $paramebi -Wait -NoNewWindow -PassThru
+
+    if ($procesi.ExitCode -eq 0 -and (Test-Path "$baza_folder\`$MFT")) {
+        Write-Host " [OK]" -ForegroundColor Green
+    } else {
+        throw "rawcopy MFT fail, kodi: $($procesi.ExitCode)"
+    }
+} catch {
+    Write-Host " [Error]" -ForegroundColor Red
+    Write-Host "       [-] $_" -ForegroundColor Red
+    "" >> $info_faili
+    "ATTENTION: `$MFT failed" >> $info_faili
+}
