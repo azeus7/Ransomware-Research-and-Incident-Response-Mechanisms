@@ -58,3 +58,49 @@ try {
     "" >> $info_faili
     "ATTENTION: `$MFT failed" >> $info_faili
 }
+
+# 2,2. NTUSER.DAT
+try {
+    Write-Host "    -> NTUSER.DAT extraction..." -NoNewline
+
+    $aqtiuri_useri = (Get-CimInstance -ClassName Win32_ComputerSystem).UserName
+    if ($aqtiuri_useri) {
+        $samizne_useri = $aqtiuri_useri.Split('\')[-1]
+        $useris_papka = "$env:SystemDrive\Users\$samizne_useri"
+    } else {
+        $useris_papka = "$env:SystemDrive\Users\$env:USERNAME"
+    }
+
+    $ntuser_failebi = @("NTUSER.DAT", "NTUSER.DAT.LOG1", "NTUSER.DAT.LOG2")
+    $yvela_kargadaa = $true
+
+    foreach ($haivis_faili in $ntuser_failebi) {
+        $user_gza = "$useris_papka\$haivis_faili"
+        if (Test-Path $user_gza) {
+            $ntuser_paramebi = @("/FileNamePath:$user_gza", "/OutputPath:$baza_folder")
+            $proc_nt = Start-Process -FilePath $rawcopy_gza -ArgumentList $ntuser_paramebi -Wait -NoNewWindow -PassThru
+
+            if ($proc_nt.ExitCode -eq 0) {
+                # moving data out of rawcopy subfolders
+                $amogebuli_faili = Get-ChildItem -Path $baza_folder -Filter $haivis_faili -Recurse | Select-Object -First 1
+                if ($amogebuli_faili) {
+                    Move-Item -Path $amogebuli_faili.FullName -Destination "$baza_folder\$haivis_faili" -Force
+                }
+            } else {
+                $yvela_kargadaa = $false
+            }
+        }
+    }
+
+    #cleanup RawCopy folders
+    Remove-Item -Path "$baza_folder\Users" -Recurse -Force -ErrorAction SilentlyContinue
+
+    if ($yvela_kargadaa -and (Test-Path "$baza_folder\NTUSER.DAT")) {
+        Write-Host "OK" -ForegroundColor Green
+    } else {
+        throw "NTUSER.DAT fail, kodi: $($proc_nt.ExitCode)"
+    }
+} catch {
+    Write-Host "Error" -ForegroundColor Red
+    "ATTENTION: NTUSER.DAT failed" >> $info_faili
+}
