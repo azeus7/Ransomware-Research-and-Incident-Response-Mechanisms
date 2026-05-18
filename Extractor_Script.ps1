@@ -104,3 +104,21 @@ try {
     Write-Host "Error" -ForegroundColor Red
     "ATTENTION: NTUSER.DAT failed" >> $info_faili
 }
+
+# 2,3. Registry Hives
+try {
+    Write-Host "Extracting SYSTEM, SOFTWARE, SAM, SECURITY hives" -NoNewline
+
+    #SAM and SECURITY
+    $haivebi = @("SYSTEM", "SOFTWARE", "SAM", "SECURITY")
+
+    foreach ($h in $haivebi) {
+        $gza = "$baza_folder\$h"
+        $proc_reg = Start-Process -FilePath "reg.exe" -ArgumentList "save HKLM\$h `"$gza`" /y" -Wait -NoNewWindow -PassThru
+        if ($proc_reg.ExitCode -ne 0) { throw "reg save failed on $h" }
+    }
+    Write-Host "OK" -ForegroundColor Green
+} catch {
+    Write-Host "Error" -ForegroundColor Red
+    "ATTENTION: Registry dump failed" >> $info_faili
+}
