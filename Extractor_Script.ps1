@@ -122,3 +122,54 @@ try {
     Write-Host "Error" -ForegroundColor Red
     "ATTENTION: Registry dump failed" >> $info_faili
 }
+
+
+# 3. Hashing
+Write-Host "Hashing In Progress" -ForegroundColor Cyan
+
+#disabled progress bar (PS Get-FileHash is slow on big files)
+$ProgressPreference = 'SilentlyContinue'
+
+$failebi_shemowmeba = @(
+    "$baza_folder\`$MFT",
+    "$baza_folder\NTUSER.DAT",
+    "$baza_folder\NTUSER.DAT.LOG1",
+    "$baza_folder\NTUSER.DAT.LOG2",
+    "$baza_folder\SYSTEM",
+    "$baza_folder\SOFTWARE",
+    "$baza_folder\SAM",
+    "$baza_folder\SECURITY"
+)
+
+"" >> $info_faili
+"Image Verification Results:" >> $info_faili
+
+foreach ($faili in $failebi_shemowmeba) {
+    if (Test-Path $faili) {
+        try {
+            $failis_info = Get-Item -Path $faili
+            $hashis_info  = Get-FileHash -Path $faili -Algorithm SHA256
+
+            "" >> $info_faili
+            "[$($failis_info.Name) Artifact Metadata]" >> $info_faili
+            " File Size:       $($failis_info.Length) bytes" >> $info_faili
+            " SHA-256 checksum: $($hashis_info.Hash) : verified" >> $info_faili
+
+            Write-Host "    -> Hashed: $($failis_info.Name)" -ForegroundColor Green
+        } catch {
+            Write-Host "    -> ERROR! Failed to hash $faili" -ForegroundColor Red
+            "" >> $info_faili
+            "Hash Calculation Failure: $faili" >> $info_faili
+        }
+    } else {
+        if ($faili -notmatch "LOG") {
+            Write-Host "    -> SKIPPED! not found: $faili" -ForegroundColor Yellow
+        }
+    }
+}
+
+$damtavrebis_dro = Get-Date -Format "ddd MMM dd HH:mm:ss yyyy"
+"" >> $info_faili
+"Acquisition finished:  $damtavrebis_dro" >> $info_faili
+
+Write-Host "Job Done!" -ForegroundColor Green
