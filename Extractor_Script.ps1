@@ -1,6 +1,39 @@
 # Must be run as administrator
 $ErrorActionPreference = "Stop"
 
+# Start stopwatch to track total script runtime
+$taimeri = [System.Diagnostics.Stopwatch]::StartNew()
+
+# Resource check
+Write-Host "Checking system load" -ForegroundColor Cyan
+$max_tsutebi = 10
+$intervali = 30
+$gasuli_dro = 0
+
+while ($true) {
+    # getting cpu load (using stackoverflow formula)
+    $cpu_datvirtva = [int](Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+    $os_info  = Get-CimInstance Win32_OperatingSystem
+    $ram_datvirtva = [math]::Round((($os_info.TotalVisibleMemorySize - $os_info.FreePhysicalMemory) / $os_info.TotalVisibleMemorySize) * 100)
+
+    Write-Host "    -> Load | CPU: $cpu_datvirtva% | RAM: $ram_datvirtva%" -ForegroundColor Gray
+
+    if ($cpu_datvirtva -lt 15 -and $ram_datvirtva -lt 85) {
+        Write-Host "System idle. Script Starting" -ForegroundColor Green
+        break
+    }
+
+    # fallback
+    if ($gasuli_dro -ge ($max_tsutebi * 60)) {
+        Write-Host "Max wait reached. Forcing execution" -ForegroundColor Yellow
+        break
+    }
+
+    Write-Host "System busy. Sleeping for $intervali seconds..." -ForegroundColor Yellow
+    Start-Sleep -Seconds $intervali
+    $gasuli_dro += $intervali
+}
+
 # 1. Config. Change Path's for individual devices.
 $drois_shtampi = Get-Date -Format "yyyy-MM-dd_HHmmss"
 $baza_folder = "C:\DFR_Baseline_$drois_shtampi"
@@ -168,8 +201,12 @@ foreach ($faili in $failebi_shemowmeba) {
     }
 }
 
+$taimeri.Stop()
+$mtliani_dro = [string]::Format("{0:d2}:{1:d2}:{2:d2}", $taimeri.Elapsed.Hours, $taimeri.Elapsed.Minutes, $taimeri.Elapsed.Seconds)
+
 $damtavrebis_dro = Get-Date -Format "ddd MMM dd HH:mm:ss yyyy"
 "" >> $info_faili
 "Acquisition finished:  $damtavrebis_dro" >> $info_faili
+"Total Execution Time:  $mtliani_dro" >> $info_faili
 
-Write-Host "Job Done!" -ForegroundColor Green
+Write-Host "Job Done! Time: $mtliani_dro" -ForegroundColor Green
