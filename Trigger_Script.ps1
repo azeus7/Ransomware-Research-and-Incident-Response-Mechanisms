@@ -37,4 +37,42 @@ foreach ($faili in $satyuara_failebi) {
     }
 }
 
-Write-Host "Bait files in place. Detection logic pending." -ForegroundColor Yellow
+# 2. Action Blocks (what happens when we catch something)
+
+$wmi_moqmedeba = {
+    $procesi = $Event.SourceEventArgs.NewEvent.TargetInstance
+    $brdzaneba = $procesi.CommandLine
+    $pidi  = $procesi.ProcessId
+
+    if ([string]::IsNullOrWhiteSpace($brdzaneba)) { return }
+
+    # regex patterns
+    $cud_sityvebi = @(
+        "vssadmin.*delete.*shadows",
+        "shadowcopy.*delete",
+        "bcdedit.*/set.*(recoveryenabled|bootstatuspolicy)",
+        "wevtutil.*cl",
+        "(net|sc).*stop.*(vss|sql|mdefend|wuauserv)"
+    )
+
+    foreach ($sityva in $cud_sityvebi) {
+        if ($brdzaneba -match $sityva) {
+#change both path to server path
+            $drois_shtampi = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $log_path   = "C:\ED-N2\Ransomware_Trigger.txt"
+            $flag_path  = "C:\ED-N2\trigger.flag"
+            $detalebi   = "Malicious Command: $brdzaneba"
+
+            # log it
+            "[$drois_shtampi] ALARM! Vector: WMI_MONITOR | PID: $pidi | Details: $detalebi" | Out-File -FilePath $log_path -Append
+
+            # drop flag for next script
+            "TRIGGERED" | Out-File -FilePath $flag_path -Force
+
+            # popup
+            $wshell = New-Object -ComObject Wscript.Shell
+            $wshell.Popup("RANSOMWARE DETECTED - FORENSICS STARTED`n`nPID: $pidi`nCMD: $brdzaneba", 10, "Warning", 48)
+            break
+        }
+    }
+}
