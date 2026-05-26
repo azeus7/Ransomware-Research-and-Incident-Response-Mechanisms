@@ -97,3 +97,42 @@ $failis_moqmedeba = {
         $wshell.Popup("RANSOMWARE DETECTED - FORENSICS STARTED`n`nDetails: $detalebi", 10, "Warning", 48)
     }
 }
+
+# 3. Register Events
+
+Write-Host "Hooking WMI for process creation..." -ForegroundColor Cyan
+#polling - 1 second
+$wmi_kitxva = "SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_Process'"
+Register-WmiEvent -Query $wmi_kitxva -SourceIdentifier "ScriptN2_WMIMonitor" -Action $wmi_moqmedeba | Out-Null
+
+Write-Host "Hooking FileSystemWatcher..." -ForegroundColor Cyan
+$failis_mzveravi = New-Object System.IO.FileSystemWatcher
+$failis_mzveravi.Path = $satyuara_papka
+$failis_mzveravi.IncludeSubdirectories = $false
+$failis_mzveravi.EnableRaisingEvents = $true
+
+Register-ObjectEvent $failis_mzveravi "Changed" -SourceIdentifier "ScriptN2_FSW_Changed" -Action $failis_moqmedeba | Out-Null
+Register-ObjectEvent $failis_mzveravi "Deleted" -SourceIdentifier "ScriptN2_FSW_Deleted" -Action $failis_moqmedeba | Out-Null
+Register-ObjectEvent $failis_mzveravi "Renamed" -SourceIdentifier "ScriptN2_FSW_Renamed" -Action $failis_moqmedeba | Out-Null
+
+#4. Wait Loop
+
+Write-Host "Script Initialized." -ForegroundColor Green
+Write-Host "    - Watching WMI."
+Write-Host "    - Watching bait files in $satyuara_papka."
+
+try {
+    # wait indefinitely without burning CPU
+    Wait-Event
+}
+finally {
+    # cleanup if stopped manually
+    Write-Host "`n Cleaning up events..." -ForegroundColor Yellow
+    Unregister-Event -SourceIdentifier "ScriptN2_WMIMonitor" -ErrorAction SilentlyContinue
+    Unregister-Event -SourceIdentifier "ScriptN2_FSW_Changed" -ErrorAction SilentlyContinue
+    Unregister-Event -SourceIdentifier "ScriptN2_FSW_Deleted" -ErrorAction SilentlyContinue
+    Unregister-Event -SourceIdentifier "ScriptN2_FSW_Renamed" -ErrorAction SilentlyContinue
+    $failis_mzveravi.EnableRaisingEvents = $false
+    $failis_mzveravi.Dispose()
+    Write-Host "Exit cleanly." -ForegroundColor Green
+}
