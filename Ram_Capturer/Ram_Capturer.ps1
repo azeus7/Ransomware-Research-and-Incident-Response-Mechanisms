@@ -58,3 +58,47 @@ catch {
     Read-Host "Press ENTER to exit"
     exit 1
 }
+
+# Apply exclusive file lock
+Write-Host "`n Enforcing exclusive system lock on the memory dump..." -ForegroundColor Cyan
+
+$File_Handle = $null
+
+try {
+    # Ensure the file actually exists and has data before locking
+    if (-not (Test-Path -LiteralPath $Resolved_Path -PathType Leaf)) {
+        throw "The RAM file was not detected at $Resolved_Path. Extraction failed."
+    }
+
+    if ((Get-Item $Resolved_Path).Length -eq 0) {
+        throw "The RAM file is 0 bytes. DumpIt failed to write data."
+    }
+
+    # FileShare::None completely isolates the file, blocking any write/rename/delete attempts
+    $File_Handle = [System.IO.File]::Open($Resolved_Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
+
+    Write-Host "EXCLUSIVE KERNEL LOCK ACTIVE!" -ForegroundColor Green
+    Write-Host "     Handle ID : $($File_Handle.SafeFileHandle.DangerousGetHandle()) (PID: $PID)" -ForegroundColor Green
+    Write-Host "     Lock Mode : FileShare::None (All external process access denied)" -ForegroundColor Green
+
+    Write-Host "               RAM FILE SECURED | KERNEL LOCK ENABLED               " -ForegroundColor Red -BackgroundColor Black
+
+    Write-Host " EXECUTE THE FOLLOWING INCIDENT RESPONSE STEPS IMMEDIATELY:" -ForegroundColor Yellow
+    Write-Host "  1) Disconnect the USB flash drive from the physical port immediately." -ForegroundColor White
+    Write-Host "  2) Sever the power source directly from the machine (Hard Power Shutdown)." -ForegroundColor White
+
+    Write-Host " WARNING: DO NOT TERMINATE THIS COMMAND WINDOW" -ForegroundColor Red
+    Write-Host " Closing this process or executing Ctrl+C will release the kernel lock and expose the file.`n" -ForegroundColor Red
+
+    # Infinite loop to sustain the lock until manual power cut
+    while ($true) {
+        Read-Host "LOCK ENGAGED - Awaiting hardware shutdown. Do not press Enter"
+        Write-Host "`n THE KERNEL LOCK IS ACTIVE. DISCONTINUE INPUT." -ForegroundColor Red
+    }
+}
+catch {
+    Write-Host "`n CRITICAL ERROR: UNABLE TO ACQUIRE EXCLUSIVE LOCK!" -ForegroundColor Red
+    Write-Host "      Details: $_" -ForegroundColor Red
+    Write-Host "      Action: Initiate manual hard power shutdown immediately!" -ForegroundColor Red
+    exit 1
+}
