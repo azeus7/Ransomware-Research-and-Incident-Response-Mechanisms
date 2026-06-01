@@ -62,13 +62,13 @@ $wmi_moqmedeba = {
             $log_path   = "C:\ED-N2\Ransomware_Trigger.txt"
             $flag_path  = "C:\ED-N2\trigger.flag"
             $detalebi   = "Malicious Command: $brdzaneba"
-
+            
             # log it
             "[$drois_shtampi] ALARM! Vector: WMI_MONITOR | PID: $pidi | Details: $detalebi" | Out-File -FilePath $log_path -Append
-
+            
             # drop flag for next script
             "TRIGGERED" | Out-File -FilePath $flag_path -Force
-
+            
             # popup
             $wshell = New-Object -ComObject Wscript.Shell
             $wshell.Popup("RANSOMWARE DETECTED - FORENSICS STARTED`n`nPID: $pidi`nCMD: $brdzaneba", 10, "Warning", 48)
@@ -80,19 +80,19 @@ $wmi_moqmedeba = {
 $failis_moqmedeba = {
     $failis_saxeli   = $Event.SourceEventArgs.Name
     $cvlilebis_tipi = $Event.SourceEventArgs.ChangeType
-
+    
     #Regex
     if ($failis_saxeli -match "^(000_Document|000_SystemConfig|zzz_Archive)") {
         $drois_shtampi = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $log_path   = "C:\ED-N2\Ransomware_Trigger.txt"
         $flag_path_gza  = "C:\ED-N2\trigger.flag"
         $detalebi   = "Bait file modified: $failis_saxeli ($cvlilebis_tipi)"
-
+        
         "[$drois_shtampi] ALARM! Vector: CANARY_MONITOR | PID: N/A | Details: $detalebi" | Out-File -FilePath $log_path -Append
         "TRIGGERED" | Out-File -FilePath $flag_path_gza -Force
-
+        
         Write-Host "`n[!!!] ALERT: Ransomware Activity Detected on Bait Files! [!!!]" -ForegroundColor Red
-
+        
         $wshell = New-Object -ComObject Wscript.Shell
         $wshell.Popup("RANSOMWARE DETECTED - FORENSICS STARTED`n`nDetails: $detalebi", 10, "Warning", 48)
     }
@@ -123,7 +123,7 @@ Write-Host "    - Watching bait files in $satyuara_papka."
 
 try {
     # wait indefinitely without burning CPU
-    Wait-Event
+    Wait-Event 
 }
 finally {
     # cleanup if stopped manually

@@ -76,11 +76,11 @@ try {
 
     # FileShare::None completely isolates the file, blocking any write/rename/delete attempts
     $File_Handle = [System.IO.File]::Open($Resolved_Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
-
+    
     Write-Host "EXCLUSIVE KERNEL LOCK ACTIVE!" -ForegroundColor Green
     Write-Host "     Handle ID : $($File_Handle.SafeFileHandle.DangerousGetHandle()) (PID: $PID)" -ForegroundColor Green
     Write-Host "     Lock Mode : FileShare::None (All external process access denied)" -ForegroundColor Green
-
+    
     Write-Host "               RAM FILE SECURED | KERNEL LOCK ENABLED               " -ForegroundColor Red -BackgroundColor Black
 
     Write-Host " EXECUTE THE FOLLOWING INCIDENT RESPONSE STEPS IMMEDIATELY:" -ForegroundColor Yellow
