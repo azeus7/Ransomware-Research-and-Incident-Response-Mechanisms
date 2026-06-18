@@ -1,4 +1,4 @@
-# Script N3: Live RAM Capture With USB (Exclusive Lock)
+# Ram_Capturer: Live RAM Capture With USB (Exclusive Lock)
 
 # Admin rights verification
 $identity  = [System.Security.Principal.WindowsIdentity]::GetCurrent()
@@ -12,33 +12,34 @@ if (-not $IsAdmin) {
     exit
 }
 
-Write-Host "`n Privilege check passed. Initializing extraction tool..." -ForegroundColor Green
+Write-Host "`n[+] Privilege check passed. Initializing extraction tool..." -ForegroundColor Green
 
-$USBRoot       = $PSScriptRoot
-$Output_Folder = Join-Path -Path $USBRoot -ChildPath "Ram_Dump"
-$magnet_exe    = Join-Path -Path $USBRoot -ChildPath "DumpIt.exe"
+# Update Drive letters according to your Systems.
+$ToolDrive      = "F:"
+$StorageDrive   = "G:"
 
-# Ensure the output directory exists
+$magnet_exe     = "$ToolDrive\DumpIt.exe"
+$Output_Folder  = "$StorageDrive\Ram_Dump"
+$Resolved_Path  = Join-Path -Path $Output_Folder -ChildPath "Live_Target_RAM.bin"
+
+# Ensure the output directory exists on the destination USB (G:)
 if (-not (Test-Path -LiteralPath $Output_Folder -PathType Container)) {
     New-Item -ItemType Directory -Path $Output_Folder -Force | Out-Null
 }
 
-$Resolved_Path = Join-Path -Path $Output_Folder -ChildPath "Live_Target_RAM.bin"
-
-# Verify DumpIt executable presence
+# Verify DumpIt executable presence on the protected drive (F:)
 if (-not (Test-Path -LiteralPath $magnet_exe -PathType Leaf)) {
-    Write-Host "`n[-] Error: DumpIt.exe not found at $magnet_exe" -ForegroundColor Red
-    Write-Host "Ensure DumpIt.exe is located in the same directory as this script." -ForegroundColor Yellow
+    Write-Host "`n[-] Error: DumpIt.exe not found on the write-blocked drive ($magnet_exe)" -ForegroundColor Red
     Read-Host "Press ENTER to exit"
     exit 1
 }
 
-Write-Host "LIVE RAM EXTRACTION IN PROGRESS" -ForegroundColor Green
-Write-Host "  -> Destination File: $Resolved_Path" -ForegroundColor Cyan
-Write-Host "  -> Executing Tool   : $magnet_exe`n" -ForegroundColor Cyan
+Write-Host "DUAL-USB LIVE RAM EXTRACTION IN PROGRESS" -ForegroundColor Green
+Write-Host "  -> Source (Write-Blocked F:) : $magnet_exe" -ForegroundColor Cyan
+Write-Host "  -> Destination (Storage G:)  : $Resolved_Path`n" -ForegroundColor Cyan
 
 try {
-    # We pass the exact .bin file path to DumpIt
+    # Execute DumpIt from the secure F: drive, targeting the G: storage drive
     $magnet_process = Start-Process `
         -FilePath      $magnet_exe `
         -ArgumentList  "/Q /T RAW /O `"$Resolved_Path`" /J /N" `
@@ -59,7 +60,7 @@ catch {
     exit 1
 }
 
-# Apply exclusive file lock
+# Apply exclusive file lock on the target drive (G:)
 Write-Host "`n Enforcing exclusive system lock on the memory dump..." -ForegroundColor Cyan
 
 $File_Handle = $null
@@ -74,7 +75,7 @@ try {
         throw "The RAM file is 0 bytes. DumpIt failed to write data."
     }
 
-    # FileShare::None completely isolates the file, blocking any write/rename/delete attempts
+    # FileShare::None completely isolates the file on G:
     $File_Handle = [System.IO.File]::Open($Resolved_Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
     
     Write-Host "EXCLUSIVE KERNEL LOCK ACTIVE!" -ForegroundColor Green
@@ -84,7 +85,7 @@ try {
     Write-Host "               RAM FILE SECURED | KERNEL LOCK ENABLED               " -ForegroundColor Red -BackgroundColor Black
 
     Write-Host " EXECUTE THE FOLLOWING INCIDENT RESPONSE STEPS IMMEDIATELY:" -ForegroundColor Yellow
-    Write-Host "  1) Disconnect the USB flash drive from the physical port immediately." -ForegroundColor White
+    Write-Host "  1) Disconnect BOTH USB flash drives (F: and G:) from the physical ports." -ForegroundColor White
     Write-Host "  2) Sever the power source directly from the machine (Hard Power Shutdown)." -ForegroundColor White
 
     Write-Host " WARNING: DO NOT TERMINATE THIS COMMAND WINDOW" -ForegroundColor Red
