@@ -34,12 +34,6 @@ dfr-ecosystem/
 │   ├── Trigger_script.ps1     # WMI + FSW behavioral detection
 │   └── Ram_Capturer.ps1       # RAM imaging + kernel evidence lock
 │
-├── docs/
-│   ├── workflow.png                          # End-to-end DFR workflow diagram
-│   ├── architecture_overview.png            # Component interaction map
-│   ├── honeypot_alert_output.png            # Sample CLI detection output
-│   └── ram_capture_output.png              # DumpIt execution screenshot
-│
 │
 ├── SECURITY.md                              # Full security disclosure & lab requirements
 ├── README.md                                # This document
