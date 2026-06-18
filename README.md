@@ -1,13 +1,15 @@
 > ⚠️ **SECURITY DISCLAIMER — READ BEFORE PROCEEDING**
-> This project employs kernel-level file locking, honeypot deception layers, volatile memory acquisition, and append-only storage manipulation. **All scripts must be validated in an isolated, air-gapped sandbox or lab environment before any production deployment.** Unauthorized or misconfigured deployment may cause system instability, unintentional data loss, or legal liability. The authors and contributors bear no responsibility for misuse. Review your jurisdiction's computer crime statutes prior to deployment. See [`SECURITY.md`](./SECURITY.md) for full disclosure.
+> **All scripts must be validated in an isolated, air-gapped sandbox or lab environment before any production deployment.** Unauthorized or misconfigured deployment may cause system instability, unintentional data loss, or legal liability. The authors and contributors bear no responsibility for misuse. Review your jurisdiction's computer crime statutes prior to deployment. See [`SECURITY.md`](./SECURITY.md) for full disclosure.
 
 ---
 
 # 🛡️ Digital Forensic Readiness (DFR) Ecosystem — Ransomware Defense & Evidence Preservation Framework
 
-**Author:** - Levan Tamazashvili <l_tamazashvili2@cu.edu.ge> Alexandra Ananskikh <a_ananskikh@cu.edu.ge>
-**Target Environment:** Windows Corporate Networks (Domain-Joined Endpoints)  
-**Core Stack:** PowerShell 5.1+, WMI, NTFS Raw I/O, RawCopy, DumpIt  
+**Authors:**
+Levan Tamazashvili <l_tamazashvili2@cu.edu.ge> 
+Alexandra Ananskikh <a_ananskikh@cu.edu.ge>
+
+**Target Environment:** Windows Corporate Networks (Domain-Joined Endpoints)
 **License:** MIT (Non-Commercial Use)
 
 ---
@@ -28,9 +30,9 @@ The result is a reproducible, sysadmin-deployable blueprint that closes the evid
 dfr-ecosystem/
 │
 ├── scripts/
-│   ├── Script_N1_Proactive_Triage.ps1       # Periodic NTFS artifact harvesting
-│   ├── Script_N2_Honeypot_Detection.ps1     # WMI + FSW behavioral detection
-│   └── Script_N3_Live_Containment.ps1       # RAM imaging + kernel evidence lock
+│   ├── Extractor_Script.ps1       # Periodic NTFS artifact harvesting
+│   ├── Trigger_script.ps1     # WMI + FSW behavioral detection
+│   └── Ram_Capturer.ps1       # RAM imaging + kernel evidence lock
 │
 ├── docs/
 │   ├── workflow.png                          # End-to-end DFR workflow diagram
@@ -38,12 +40,6 @@ dfr-ecosystem/
 │   ├── honeypot_alert_output.png            # Sample CLI detection output
 │   └── ram_capture_output.png              # DumpIt execution screenshot
 │
-├── playbooks/
-│   ├── IR_Playbook_Ransomware.md            # Step-by-step IR playbook
-│   └── Evidence_Chain_of_Custody.md        # Legal chain-of-custody template
-│
-├── config/
-│   └── dfr_config.psd1                      # Centralized configuration manifest
 │
 ├── SECURITY.md                              # Full security disclosure & lab requirements
 ├── README.md                                # This document
@@ -54,21 +50,19 @@ dfr-ecosystem/
 
 ## Technical Architecture
 
-![DFR Ecosystem Workflow](./docs/workflow.png)
-
 The ecosystem is composed of three operationally distinct but interdependent PowerShell automation modules. Each script targets a specific phase of the PICERL incident response lifecycle.
 
 ### Component Overview
 
 | Script | Phase | Trigger | Primary Function |
 |---|---|---|---|
-| `Script_N1` — Proactive Triage | **Preparation** | Task Scheduler (idle-time) | Extracts locked NTFS artifacts via kernel-level raw I/O; replicates to append-only server |
-| `Script_N2` — Honeypot & Detection | **Identification** | Continuous (WMI + FSW) | Behavioral deception trap; generates `trigger.flag` on confirmed ransomware detection |
-| `Script_N3` — Live Containment | **Containment** | Event-driven (flag polling) | Acquires volatile RAM image via DumpIt; applies `FileShare::None` kernel lock on dump |
+| `Extractor_Script` — Proactive Triage | **Preparation** | Task Scheduler (idle-time) | Extracts locked NTFS artifacts via kernel-level raw I/O; replicates to append-only server |
+| `Trigger_script` — Honeypot & Detection | **Identification** | Continuous (WMI + FSW) | Behavioral deception trap; generates `trigger.flag` on confirmed ransomware detection |
+| `Ram_Capturer` — Live Containment | **Containment** | Event-driven (flag polling) | Acquires volatile RAM image via DumpIt; applies `FileShare::None` kernel lock on dump |
 
 ---
 
-### Script N1 — Proactive Triage (Pre-Incident Artifact Harvesting)
+### Extractor_Script — Proactive Triage (Pre-Incident Artifact Harvesting)
 
 **Objective:** Acquire forensically significant NTFS structures that are normally locked by the Windows kernel during live system operation.
 
@@ -92,7 +86,7 @@ foreach ($artifact in $artifacts) {
 
 ---
 
-### Script N2 — Desktop Honeypot & Detection Engine
+### Trigger_script — Desktop Honeypot & Detection Engine
 
 **Objective:** Detect ransomware at the earliest possible point of execution — before significant file encryption occurs — using behavioral deception.
 
@@ -102,10 +96,10 @@ foreach ($artifact in $artifacts) {
 - Deploys a **.NET `FileSystemWatcher`** on the honeypot directory to detect any unauthorized read, write, rename, or delete event against the canary files.
 - Upon confirmed detection, the script:
   1. Fires a **real-time alert** (Event Log entry + optional SIEM webhook).
-  2. Writes a `trigger.flag` file to the append-only secure server, which is continuously polled by Script N3.
+  2. Writes a `trigger.flag` file to the SOC server.
 
 ```powershell
-# Conceptual FSW monitoring (Script N2)
+# Conceptual FSW monitoring (Trigger_Script)
 $watcher = New-Object System.IO.FileSystemWatcher
 $watcher.Path = $HoneypotDirectory
 $watcher.EnableRaisingEvents = $true
@@ -117,7 +111,7 @@ Register-ObjectEvent $watcher "Changed" -Action {
 
 ---
 
-### Script N3 — Live Containment & Evidence Locking
+### Ram_Capturer — Live Containment & Evidence Locking
 
 **Objective:** The moment ransomware is confirmed, capture the complete volatile memory state of the compromised endpoint and render the forensic artifact immutable at the kernel level.
 
@@ -132,7 +126,7 @@ Register-ObjectEvent $watcher "Changed" -Action {
 - Logs a final **SHA-256 hash** of the memory dump for chain-of-custody documentation.
 
 ```powershell
-# Conceptual kernel lock (Script N3)
+# Conceptual kernel lock (Ram_Capturer)
 & DumpIt.exe /output "$SecureShare\memdump_$env:COMPUTERNAME_$(Get-Date -Format yyyyMMddHHmmss).raw"
 $dumpPath = Get-ChildItem "$SecureShare\memdump_*.raw" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 $stream = [System.IO.File]::Open($dumpPath.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
@@ -154,9 +148,7 @@ Before deployment, confirm the following requirements are satisfied across all n
 | Operating System | Windows 10 / Server 2016 or later |
 | PowerShell | Version 5.1 or later |
 | Execution Policy | `RemoteSigned` or `Bypass` (GPO-enforced) |
-| Privileges | Local Administrator (Scripts N1, N3); Domain User (Script N2) |
-| RawCopy | Deployed to `C:\DFR\tools\RawCopy.exe` |
-| DumpIt | Deployed to `C:\DFR\tools\DumpIt.exe` |
+| Privileges | Local Administrator (Extractor_Script, Ram_Capturer); Domain User (Trigger_Script) |
 | .NET Framework | 4.7.2 or later |
 
 **Secure Server Requirements:**
@@ -229,8 +221,8 @@ Copy-Item "\\DomainSysvol\DFR\scripts\*"   -Destination "C:\DFR\scripts\"
     ServiceAccount  = "DOMAIN\dfr_writer"
     HashLogPath     = "\\SECURE-SRV\DFR_Secure\hash_manifest.log"
     HoneypotDir     = "C:\DFR\honeypot"
-    IdleCpuThreshold = 10        # Percent — N1 runs only below this
-    FlagPollInterval = 30        # Seconds — N3 polling rate
+    IdleCpuThreshold = 10        # Percent — runs only below this
+    FlagPollInterval = 30        # Seconds — polling rate
     DumpItPath      = "C:\DFR\tools\DumpIt.exe"
     RawCopyPath     = "C:\DFR\tools\RawCopy.exe"
 }
@@ -240,29 +232,29 @@ Copy-Item "\\DomainSysvol\DFR\scripts\*"   -Destination "C:\DFR\scripts\"
 
 ### Step 3 — Task Scheduler Integration
 
-All three scripts are registered as Windows Scheduled Tasks. Scripts N2 and N3 run as persistent background services; Script N1 runs on an idle-time trigger.
+Scripts are registered as Windows Scheduled Tasks. Trigger_Script run as persistent background services; Extractor_Script runs on an idle-time trigger.
 
-**Register Script N1 (Proactive Triage — Idle Trigger):**
+**Register Extractor_Script (Proactive Triage — Idle Trigger):**
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -File C:\DFR\scripts\Script_N1_Proactive_Triage.ps1"
-$trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Hours 6) -Once -At (Get-Date)
+$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -File C:\DFR\scripts\Extractor_Script.ps1"
+$trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Hours 1) -Once -At (Get-Date)
 $settings = New-ScheduledTaskSettingsSet -RunOnlyIfIdle -IdleDuration (New-TimeSpan -Minutes 10) -IdleWaitTimeout (New-TimeSpan -Hours 1)
 Register-ScheduledTask -TaskName "DFR-ProactiveTriage" -Action $action -Trigger $trigger -Settings $settings -RunLevel Highest -User "SYSTEM"
 ```
 
-**Register Script N2 (Honeypot — At Logon, Persistent):**
+**Register Trigger_Script (Honeypot — At Logon, Persistent):**
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\DFR\scripts\Script_N2_Honeypot_Detection.ps1"
+$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\DFR\scripts\Trigger_Script.ps1"
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 Register-ScheduledTask -TaskName "DFR-HoneypotMonitor" -Action $action -Trigger $trigger -RunLevel Highest -User "SYSTEM"
 ```
 
-**Register Script N3 (Containment — At Startup, Flag-Polling):**
+**Register Ram_Capturer (Containment — At Startup, Flag-Polling):**
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\DFR\scripts\Script_N3_Live_Containment.ps1"
+$action  = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\DFR\scripts\Ram_Capturer.ps1"
 $trigger = New-ScheduledTaskTrigger -AtStartup
 Register-ScheduledTask -TaskName "DFR-LiveContainment" -Action $action -Trigger $trigger -RunLevel Highest -User "SYSTEM"
 ```
@@ -276,8 +268,8 @@ Register-ScheduledTask -TaskName "DFR-LiveContainment" -Action $action -Trigger 
 **Test 1: Verify N1 Artifact Extraction**
 
 ```powershell
-# Manually trigger N1 and confirm artifacts and hashes appear on secure share
-& "C:\DFR\scripts\Script_N1_Proactive_Triage.ps1" -Force
+# Manually trigger Extractor_Script and confirm artifacts and hashes appear on secure share
+& "C:\DFR\scripts\Extractor_Script.ps1" -Force
 
 # Validate artifacts exist
 Get-ChildItem "\\SECURE-SRV\DFR_Secure\" | Where-Object { $_.Name -match "MFT|SYSTEM|SAM" }
@@ -300,7 +292,7 @@ Test-Path "\\SECURE-SRV\DFR_Secure\trigger.flag"   # Expected: True
 Get-WinEvent -LogName Security | Where-Object { $_.Id -eq 9001 } | Select-Object -First 1
 ```
 
-**Test 3: Confirm N3 RAM Imaging and Kernel Lock**
+**Test 3: Confirm Ram_Capturer RAM Imaging and Kernel Lock**
 
 ```powershell
 # Confirm .raw dump file was created after trigger
@@ -356,19 +348,11 @@ foreach ($entry in $manifest) {
 
 ---
 
-## Incident Response Playbook Reference
-
-For a complete, scenario-based IR playbook designed for use alongside this framework, see [`playbooks/IR_Playbook_Ransomware.md`](./playbooks/IR_Playbook_Ransomware.md).
-
-For chain-of-custody documentation templates compliant with ISO/IEC 27037 and ACPO Good Practice Guide standards, see [`playbooks/Evidence_Chain_of_Custody.md`](./playbooks/Evidence_Chain_of_Custody.md).
-
----
-
 ## Limitations & Known Constraints
 
 | Constraint | Detail |
 |---|---|
-| **Kernel lock persistence** | The `FileShare::None` stream held by N3 is released upon process termination or system reboot. Ensure N3 runs as SYSTEM with restart-on-failure configured. |
+| **Kernel lock persistence** | The `FileShare::None` stream held by N3 is released upon process termination or system reboot. Ensure Ram_Capturer runs as SYSTEM with restart-on-failure configured. |
 | **RawCopy privilege requirement** | `$MFT` extraction requires local Administrator or `SeBackupPrivilege`. Enforce via GPO. |
 | **DumpIt 32/64-bit parity** | Use the DumpIt binary matching the endpoint OS architecture. Mismatches produce incomplete dumps. |
 | **Honeypot evasion** | Sophisticated ransomware strains that enumerate canary file signatures may evade detection. Randomize honeypot file names and extensions regularly. |
