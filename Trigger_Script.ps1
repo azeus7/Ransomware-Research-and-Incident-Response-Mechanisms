@@ -8,12 +8,14 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 }
 
 # 1. Setup
+
+#Change Path to your systems one
 $mtavari_papka = "C:\ED-N2"
 if (-not (Test-Path $mtavari_papka)) {
     New-Item -Path $mtavari_papka -ItemType Directory -Force | Out-Null
 }
 
-# CHANGED: Setup targeting the hidden folder directly on the user's Desktop
+# Setup targeting the hidden folder directly on the user's Desktop
 $DesktopPath = [Environment]::GetFolderPath("Desktop")
 $satyuara_papka = Join-Path -Path $DesktopPath -ChildPath ".Honeypot_Baits"
 
